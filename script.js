@@ -5,6 +5,7 @@
 
   const form = document.getElementById("predict-form");
   const submitBtn = document.getElementById("submit-btn");
+  const exampleBtn = document.getElementById("example-btn");
   const resetBtn = document.getElementById("reset-btn");
   const errorRetryBtn = document.getElementById("error-retry-btn");
 
@@ -67,6 +68,38 @@
       stressHiddenInput.value = btn.dataset.value;
       clearFieldError(stressHiddenInput);
     });
+  });
+
+  // Fill the form with a high-scoring demo profile and run its prediction.
+  exampleBtn.addEventListener("click", () => {
+    const example = {
+      age: "23",
+      gender: "Male",
+      country: "Other",
+      academic_level: "Graduate",
+      most_used_platform: "Instagram",
+      purpose_of_use: "Entertainment",
+      avg_daily_usage_hours: "3.2",
+      daily_unlocks: "133",
+      study_hours: "5.1",
+      physical_activity_hours: "2.4",
+      sleep_hours_per_night: "9.0",
+      stress_level: "Low",
+    };
+
+    Object.entries(example).forEach(([name, value]) => {
+      const input = form.elements.namedItem(name);
+      if (input && name !== "stress_level") input.value = value;
+    });
+
+    segGroup.querySelectorAll(".seg-btn").forEach((btn) => {
+      const selected = btn.dataset.value === example.stress_level;
+      btn.classList.toggle("active", selected);
+      btn.setAttribute("aria-pressed", String(selected));
+    });
+    stressHiddenInput.value = example.stress_level;
+    clearAllErrors();
+    form.requestSubmit();
   });
 
   // ---------------------------------------------------------

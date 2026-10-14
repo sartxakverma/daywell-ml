@@ -253,11 +253,14 @@ button, input, select {
 }
 .form-intro {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding-bottom: 21px;
+  padding-bottom: 18px;
   border-bottom: 1px solid var(--line);
+}
+.form-heading-copy {
+  min-width: 0;
 }
 .section-kicker {
   margin-bottom: 5px;
@@ -437,8 +440,38 @@ input:focus,select:focus {
 }
 .form-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   padding-top: 20px;
+}
+.example-btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--green-dark);
+  border-radius: 999px;
+  background: var(--green-dark);
+  color: #f7f6ed;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background .18s,border-color .18s,transform .18s;
+}
+.example-btn:hover {
+  border-color: var(--green);
+  background: var(--green);
+  transform: translateY(-1px);
+}
+.example-btn:focus-visible {
+  outline: 3px solid #9aba78;
+  outline-offset: 3px;
+}
+.optional-note {
+  display: block;
+  margin-top: 4px;
+  color: #727e75;
+  font-size: 12px;
 }
 .submit-btn {
   min-height: 48px;
@@ -891,11 +924,14 @@ input:focus,select:focus {
     padding: 22px 17px;
   }
   .form-intro {
-    align-items: start;
+    align-items: flex-start;
     flex-direction: column;
   }
   .optional-note {
     text-align: left;
+  }
+  .example-btn {
+    width: 100%;
   }
   .grid-2,.grid-3 {
     grid-template-columns: 1fr;
@@ -907,6 +943,7 @@ input:focus,select:focus {
     grid-column: auto;
   }
   .form-footer {
+    flex-direction: column;
     padding-top: 16px;
   }
   .submit-btn {
