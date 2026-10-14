@@ -21,7 +21,7 @@ app.add_middleware(
 #A first Pydantic Model
 class StudentData(BaseModel):
     age                     : int = Field(..., ge=10, le=100)
-    gender                  : Literal['Male', 'Female']
+    gender                  : Literal['Male', 'Female', 'Other']
     country                 : str
     academic_level          : Literal['Undergraduate', 'Graduate', 'High School']
     most_used_platform      : Literal['Facebook', 'LinkedIn', 'Instagram', 'Snapchat','Twitter','YouTube', 'TikTok', 'LINE', 'KakaoTalk', 'VKontakte', 'WhatsApp','WeChat']

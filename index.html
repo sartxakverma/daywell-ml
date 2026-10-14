@@ -31,7 +31,7 @@
       <div class="form-heading-copy">
         <p class="section-kicker">A MOMENT FOR YOU</p>
         <h2 id="form-heading">Your everyday picture</h2>
-        <span class="optional-note">Or try a demo profile and see its prediction.</span>
+        <span class="optional-note">Try a demo profile, then click “See my reflection” to run it.</span>
       </div>
       <button type="button" class="example-btn" id="example-btn">Try an example</button>
     </div>
@@ -52,23 +52,17 @@
               <option value="" disabled selected hidden>Select</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
+              <option value="Other">Other</option>
             </select>
             <span class="error-msg" data-for="gender"></span>
           </div>
           <div class="field">
             <label for="country">Country</label>
-            <input type="text" id="country" name="country" list="country-list" required placeholder="e.g. India" autocomplete="off" />
-            <datalist id="country-list">
-              <option value="India"></option>
-              <option value="USA"></option>
-              <option value="Canada"></option>
-              <option value="Australia"></option>
-              <option value="UK"></option>
-              <option value="Germany"></option>
-              <option value="Mexico"></option>
-              <option value="Turkey"></option>
-              <option value="France"></option>
-            </datalist>
+            <div class="country-combobox">
+              <input type="text" id="country" name="country" required placeholder="e.g. India" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="country-suggestions" />
+              <button type="button" class="country-toggle" id="country-toggle" aria-label="Show country suggestions" aria-expanded="false" aria-controls="country-suggestions"><span class="custom-select-chevron" aria-hidden="true"></span></button>
+              <div class="custom-select-menu country-suggestions" id="country-suggestions" role="listbox" hidden></div>
+            </div>
             <span class="hint">Not listed? Type it anyway.</span>
             <span class="error-msg" data-for="country"></span>
           </div>
@@ -176,7 +170,7 @@
       </fieldset>
 
       <div class="form-footer">
-        <button type="submit" class="submit-btn" id="submit-btn">
+        <button type="button" class="submit-btn" id="submit-btn">
           <span class="btn-label">See my reflection</span>
           <span class="btn-spinner" aria-hidden="true"></span>
         </button>

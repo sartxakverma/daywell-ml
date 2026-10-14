@@ -52,6 +52,269 @@
   }
   drawTicks();
 
+  // Replace native select menus with a styled, keyboard-accessible listbox.
+  function enhanceSelect(select) {
+    const field = select.closest(".field");
+    const label = field?.querySelector(`label[for="${select.id}"]`);
+    const wrapper = document.createElement("div");
+    const trigger = document.createElement("button");
+    const listbox = document.createElement("div");
+    const valueText = document.createElement("span");
+    const options = [];
+    const listboxId = `${select.id}-options`;
+    const triggerId = `${select.id}-dropdown`;
+
+    wrapper.className = "custom-select";
+    trigger.type = "button";
+    trigger.id = triggerId;
+    trigger.className = "custom-select-trigger";
+    trigger.setAttribute("role", "combobox");
+    trigger.setAttribute("aria-haspopup", "listbox");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.setAttribute("aria-controls", listboxId);
+
+    if (label) {
+      if (!label.id) label.id = `${select.id}-label`;
+      trigger.setAttribute("aria-labelledby", label.id);
+      label.addEventListener("click", (event) => {
+        event.preventDefault();
+        trigger.focus();
+        openMenu();
+      });
+    }
+
+    valueText.className = "custom-select-value";
+    const chevron = document.createElement("span");
+    chevron.className = "custom-select-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    trigger.append(valueText, chevron);
+
+    listbox.id = listboxId;
+    listbox.className = "custom-select-menu";
+    listbox.setAttribute("role", "listbox");
+    listbox.hidden = true;
+
+    Array.from(select.options).forEach((nativeOption, optionIndex) => {
+      if (nativeOption.disabled || nativeOption.value === "") return;
+
+      const option = document.createElement("div");
+      const mark = document.createElement("span");
+      const text = document.createElement("span");
+      const check = document.createElement("span");
+      option.className = "custom-select-option";
+      option.id = `${listboxId}-${optionIndex}`;
+      option.dataset.value = nativeOption.value;
+      option.tabIndex = -1;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", "false");
+
+      mark.className = "custom-option-mark";
+      mark.setAttribute("aria-hidden", "true");
+      mark.textContent = nativeOption.textContent.trim().charAt(0).toUpperCase();
+      text.className = "custom-option-label";
+      text.textContent = nativeOption.textContent.trim();
+      check.className = "custom-option-check";
+      check.setAttribute("aria-hidden", "true");
+      check.textContent = "✓";
+      option.append(mark, text, check);
+
+      option.addEventListener("click", () => {
+        select.value = nativeOption.value;
+        select.dispatchEvent(new Event("input", { bubbles: true }));
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        closeMenu(true);
+      });
+      option.addEventListener("keydown", (event) => {
+        const currentIndex = options.indexOf(option);
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          const offset = event.key === "ArrowDown" ? 1 : -1;
+          options[(currentIndex + offset + options.length) % options.length].focus();
+        } else if (event.key === "Home" || event.key === "End") {
+          event.preventDefault();
+          options[event.key === "Home" ? 0 : options.length - 1].focus();
+        } else if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          option.click();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          closeMenu(true);
+        }
+      });
+
+      options.push(option);
+      listbox.appendChild(option);
+    });
+
+    function syncSelection() {
+      const selected = select.options[select.selectedIndex];
+      valueText.textContent = selected ? selected.textContent.trim() : "Select";
+      trigger.classList.toggle("has-value", Boolean(select.value));
+      options.forEach((option) => {
+        const isSelected = option.dataset.value === select.value;
+        option.setAttribute("aria-selected", String(isSelected));
+        option.classList.toggle("selected", isSelected);
+      });
+    }
+
+    function openMenu() {
+      listbox.hidden = false;
+      wrapper.classList.add("open");
+      trigger.setAttribute("aria-expanded", "true");
+      const selected = options.find((option) => option.dataset.value === select.value);
+      (selected || options[0])?.focus();
+    }
+
+    function closeMenu(returnFocus = false) {
+      listbox.hidden = true;
+      wrapper.classList.remove("open");
+      trigger.setAttribute("aria-expanded", "false");
+      if (returnFocus) trigger.focus();
+    }
+
+    trigger.addEventListener("click", () => {
+      if (listbox.hidden) openMenu();
+      else closeMenu();
+    });
+    trigger.addEventListener("keydown", (event) => {
+      if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) {
+        event.preventDefault();
+        if (listbox.hidden) openMenu();
+      }
+    });
+    select.addEventListener("change", syncSelection);
+    document.addEventListener("click", (event) => {
+      if (!wrapper.contains(event.target)) closeMenu();
+    });
+    wrapper.addEventListener("focusout", (event) => {
+      if (!wrapper.contains(event.relatedTarget)) closeMenu();
+    });
+
+    select.classList.add("custom-select-native");
+    select.tabIndex = -1;
+    select.setAttribute("aria-hidden", "true");
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.append(select, trigger, listbox);
+    syncSelection();
+  }
+
+  form.querySelectorAll("select").forEach((select) => enhanceSelect(select));
+
+  // Styled, filterable country suggestions; custom country names remain valid.
+  const countryInput = document.getElementById("country");
+  const countryToggle = document.getElementById("country-toggle");
+  const countrySuggestions = document.getElementById("country-suggestions");
+  const countryCombobox = countryInput.closest(".country-combobox");
+  const countryNames = ["India", "USA", "Canada", "Australia", "UK", "Germany", "Mexico", "Turkey", "France", "Other"];
+  let countryOptions = [];
+  let showingAllCountrySuggestions = false;
+  let suppressCountryFocusSuggestions = false;
+
+  function closeCountrySuggestions(returnFocus = false) {
+    countrySuggestions.hidden = true;
+    countryInput.setAttribute("aria-expanded", "false");
+    countryToggle.setAttribute("aria-expanded", "false");
+    if (returnFocus) countryInput.focus();
+  }
+
+  function chooseCountry(value) {
+    countryInput.value = value;
+    countryInput.dispatchEvent(new Event("change", { bubbles: true }));
+    suppressCountryFocusSuggestions = true;
+    closeCountrySuggestions(true);
+    requestAnimationFrame(() => {
+      suppressCountryFocusSuggestions = false;
+    });
+  }
+
+  function renderCountrySuggestions(filterByInput = true) {
+    showingAllCountrySuggestions = !filterByInput;
+    const query = filterByInput ? countryInput.value.trim().toLocaleLowerCase() : "";
+    const matches = countryNames.filter((name) => name.toLocaleLowerCase().includes(query));
+    countrySuggestions.replaceChildren();
+    countryOptions = [];
+
+    matches.forEach((name, index) => {
+      const option = document.createElement("div");
+      const mark = document.createElement("span");
+      const text = document.createElement("span");
+      const check = document.createElement("span");
+      const selected = name.toLocaleLowerCase() === countryInput.value.trim().toLocaleLowerCase();
+      option.className = `custom-select-option${selected ? " selected" : ""}`;
+      option.id = `country-suggestion-${index}`;
+      option.dataset.value = name;
+      option.tabIndex = -1;
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", String(selected));
+      mark.className = "custom-option-mark";
+      mark.setAttribute("aria-hidden", "true");
+      mark.textContent = name.charAt(0);
+      text.className = "custom-option-label";
+      text.textContent = name;
+      check.className = "custom-option-check";
+      check.setAttribute("aria-hidden", "true");
+      check.textContent = "✓";
+      option.append(mark, text, check);
+      option.addEventListener("click", () => chooseCountry(name));
+      option.addEventListener("keydown", (event) => {
+        const currentIndex = countryOptions.indexOf(option);
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          const offset = event.key === "ArrowDown" ? 1 : -1;
+          countryOptions[(currentIndex + offset + countryOptions.length) % countryOptions.length].focus();
+        } else if (event.key === "Home" || event.key === "End") {
+          event.preventDefault();
+          countryOptions[event.key === "Home" ? 0 : countryOptions.length - 1].focus();
+        } else if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          chooseCountry(name);
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          closeCountrySuggestions(true);
+        }
+      });
+      countryOptions.push(option);
+      countrySuggestions.appendChild(option);
+    });
+
+    const hasMatches = countryOptions.length > 0;
+    countrySuggestions.hidden = !hasMatches;
+    countryInput.setAttribute("aria-expanded", String(hasMatches));
+    countryToggle.setAttribute("aria-expanded", String(hasMatches));
+  }
+
+  countryInput.addEventListener("focus", () => {
+    if (!suppressCountryFocusSuggestions) renderCountrySuggestions(false);
+  });
+  countryInput.addEventListener("input", renderCountrySuggestions);
+  countryToggle.addEventListener("click", () => {
+    if (!countrySuggestions.hidden && showingAllCountrySuggestions) closeCountrySuggestions();
+    else renderCountrySuggestions(false);
+  });
+  countryInput.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown" && countryOptions.length) {
+      event.preventDefault();
+      countryOptions[0].focus();
+    } else if (event.key === "ArrowUp" && countryOptions.length) {
+      event.preventDefault();
+      countryOptions[countryOptions.length - 1].focus();
+    } else if (event.key === "Enter" && !countrySuggestions.hidden) {
+      const exactMatch = countryOptions.find((option) => option.dataset.value.toLocaleLowerCase() === countryInput.value.trim().toLocaleLowerCase());
+      if (exactMatch) {
+        event.preventDefault();
+        chooseCountry(exactMatch.dataset.value);
+      }
+    } else if (event.key === "Escape") {
+      closeCountrySuggestions();
+    }
+  });
+  countryCombobox.addEventListener("focusout", (event) => {
+    if (!countryCombobox.contains(event.relatedTarget)) closeCountrySuggestions();
+  });
+  document.addEventListener("click", (event) => {
+    if (!countryCombobox.contains(event.target)) closeCountrySuggestions();
+  });
+
   // ---------------------------------------------------------
   // Segmented control (stress_level) wiring
   // ---------------------------------------------------------
@@ -89,7 +352,12 @@
 
     Object.entries(example).forEach(([name, value]) => {
       const input = form.elements.namedItem(name);
-      if (input && name !== "stress_level") input.value = value;
+      if (input && name !== "stress_level") {
+        input.value = value;
+        if (input instanceof HTMLSelectElement) {
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }
     });
 
     segGroup.querySelectorAll(".seg-btn").forEach((btn) => {
@@ -99,7 +367,11 @@
     });
     stressHiddenInput.value = example.stress_level;
     clearAllErrors();
-    form.requestSubmit();
+  });
+
+  // Run the prediction only when the user explicitly clicks this button.
+  submitBtn.addEventListener("click", () => {
+    if (!submitBtn.disabled) form.requestSubmit();
   });
 
   // ---------------------------------------------------------
@@ -279,7 +551,9 @@
 
     if (clientErrors.length > 0) {
       clientErrors.forEach(([input, msg]) => input && setFieldError(input, msg));
-      clientErrors[0][0]?.focus?.();
+      const firstInvalid = clientErrors[0][0];
+      const customTrigger = firstInvalid?.closest(".field")?.querySelector(".custom-select-trigger");
+      (customTrigger || firstInvalid)?.focus?.();
       return;
     }
 
